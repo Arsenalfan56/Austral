@@ -70,15 +70,13 @@ WSGI_APPLICATION = 'erp_austral.wsgi.application'
 
 # Database
 
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'erp_austral_db',
-        'USER': 'postgres',
-        'PASSWORD': 'lecheria2026',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default='postgresql://postgres:postgres@localhost:5432/mysite',
+        conn_max_age=600
+    )
 }
 
 
