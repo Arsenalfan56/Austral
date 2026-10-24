@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard BI - Austral V&T</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #76777b;
+            color: #5c5d5e;
+            padding: 24px;
+        }
+        h1 { color: #416371; margin-bottom: 8px; }
+        .subtitle { color: #272728; margin-bottom: 24px; }
+        .section-title {
+            color: #38bdf8;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 32px 0 16px 0;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 8px;
+        }
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #38bdf8;
+        }
+        .kpi-card.warning { border-left-color: #facc15; }
+        .kpi-card.danger  { border-left-color: #ef4444; }
+        .kpi-card.success { border-left-color: #4ade80; }
+        .kpi-card h3 {
+            color: #5b5d5f;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .kpi-card p {
+            font-size: 30px;
+            font-weight: bold;
+            color: #565859;
+            margin-top: 8px;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .chart-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .chart-card h2 {
+            color: #38bdf8;
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+        canvas { max-height: 300px; }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Dashboard de Business Intelligence</h1>
+    <p class="subtitle">Austral V&amp;T ERP — Análisis estratégico en tiempo real</p>
+
+    <!-- KPIs OPERATIVOS -->
+    <div class="section-title">Indicadores Operativos</div>
+    <div class="kpis">
+        <div class="kpi-card">
+            <h3>Total Equipos</h3>
+            <p>{{ totales.equipos }}</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Órdenes Totales</h3>
+            <p>{{ totales.ordenes }}</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Calibraciones</h3>
+            <p>{{ totales.calibraciones }}</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Diagnósticos IA</h3>
+            <p>{{ totales.diagnosticos }}</p>
+        </div>
+    </div>
+
+    <!-- KPIs ESTRATÉGICOS -->
+    <div class="section-title">Indicadores Estratégicos (Capítulo IV)</div>
+    <div class="kpis">
+        <div class="kpi-card success">
+            <h3>Efectividad Calibraciones</h3>
+            <p>{{ porcentaje_efectivas }}%</p>
+        </div>
+        <div class="kpi-card">
+            <h3>% Promedio Parámetros</h3>
+            <p>{{ efectividad_promedio }}%</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Tiempo Prom. Diagnóstico</h3>
+            <p>{{ tiempo_promedio_diag }} min</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Confianza IA Promedio</h3>
+            <p>{{ confianza_promedio }}%</p>
+        </div>
+    </div>
+
+    <div class="kpis">
+        <div class="kpi-card success">
+            <h3>Órdenes A Tiempo</h3>
+            <p>{{ a_tiempo }}</p>
+        </div>
+        <div class="kpi-card danger">
+            <h3>Órdenes Retrasadas</h3>
+            <p>{{ retrasadas }}</p>
+        </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="section-title">Análisis Visual</div>
+    <div class="charts-grid">
+
+        <div class="chart-card">
+            <h2>Órdenes por Estado</h2>
+            <canvas id="graficoEstados"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h2>Órdenes por Prioridad</h2>
+            <canvas id="graficoPrioridad"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h2>Top 5 Equipos con más Órdenes</h2>
+            <canvas id="graficoTopEquipos"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h2>Evolución Mensual de Órdenes (6 meses)</h2>
+            <canvas id="graficoMeses"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+        const ordenesPorEstado = {{ ordenes_por_estado|safe }};
+        const ordenesPorPrioridad = {{ ordenes_por_prioridad|safe }};
+        const topEquipos = {{ top_equipos|safe }};
+        const ordenesPorMes = {{ ordenes_por_mes|safe }};
+
+        const colores = ['#38bdf8', '#f472b6', '#facc15', '#4ade80', '#a78bfa', '#fb923c'];
+
+        // Gráfico 1: Estados
+        new Chart(document.getElementById('graficoEstados'), {
+            type: 'doughnut',
+            data: {
+                labels: ordenesPorEstado.map(e => e.estado),
+                datasets: [{
+                    data: ordenesPorEstado.map(e => e.total),
+                    backgroundColor: colores
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom', labels: { color: '#e2e8f0' } } } }
+        });
+
+        // Gráfico 2: Prioridad
+        new Chart(document.getElementById('graficoPrioridad'), {
+            type: 'bar',
+            data: {
+                labels: ordenesPorPrioridad.map(p => p.prioridad),
+                datasets: [{
+                    label: 'Órdenes',
+                    data: ordenesPorPrioridad.map(p => p.total),
+                    backgroundColor: ['#ef4444', '#fb923c', '#facc15', '#4ade80']
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' } },
+                    y: { ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // Gráfico 3: Top equipos
+        new Chart(document.getElementById('graficoTopEquipos'), {
+            type: 'bar',
+            data: {
+                labels: topEquipos.map(e => e.equipo__nombre || '—'),
+                datasets: [{
+                    label: 'Órdenes',
+                    data: topEquipos.map(e => e.total),
+                    backgroundColor: '#a78bfa'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' } },
+                    y: { ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // Gráfico 4: Evolución mensual
+        new Chart(document.getElementById('graficoMeses'), {
+            type: 'line',
+            data: {
+                labels: ordenesPorMes.map(o => o.mes ? String(o.mes).substring(0, 7) : ''),
+                datasets: [{
+                    label: 'Órdenes',
+                    data: ordenesPorMes.map(o => o.total),
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' } },
+                    y: { ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

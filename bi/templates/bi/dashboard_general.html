@@ -1,0 +1,136 @@
+{% extends 'bi/base_bi.html' %}
+
+{% block content %}
+<style>
+    .bi-container { max-width: 1300px; margin: 0 auto; padding: 20px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    .bi-header { background: linear-gradient(135deg, #4a7c8c 0%, #3b6373 100%); color: #ffffff; padding: 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(74, 124, 140, 0.3); }
+    .bi-header h1 { margin: 0 0 8px 0; font-size: 26px; font-weight: 700; }
+    .bi-header p { margin: 0; font-size: 14px; opacity: 0.9; }
+    .filtros-panel { background-color: #ffffff; padding: 20px 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 25px; border: 1px solid #e2e8f0; }
+    .filtros-panel h3 { margin: 0 0 15px 0; color: #0f172a; font-size: 16px; font-weight: 600; }
+    .filtros-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+    .filtro-item { flex: 1; min-width: 220px; }
+    .filtro-item label { display: block; color: #1e293b; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+    .filtro-item select { width: 100%; padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 7px; font-size: 14px; color: #1e293b; background-color: #ffffff; font-family: inherit; cursor: pointer; }
+    .filtro-item select:focus { border-color: #4a7c8c; outline: none; box-shadow: 0 0 0 3px rgba(74, 124, 140, 0.15); }
+    .btn-filtrar { padding: 10px 24px; background-color: #4a7c8c; color: #ffffff; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-filtrar:hover { background-color: #3b6373; }
+    .btn-limpiar { padding: 10px 20px; background-color: #64748b; color: #ffffff; border-radius: 7px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; }
+    .btn-limpiar:hover { background-color: #475569; color: #ffffff; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 25px; }
+    .kpi-card { background-color: #ffffff; border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 6px solid #cbd5e1; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+    .kpi-card.ok { border-left-color: #28a745; }
+    .kpi-card.fail { border-left-color: #dc3545; }
+    .kpi-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .kpi-card-header h4 { margin: 0; color: #0f172a; font-size: 15px; font-weight: 600; }
+    .kpi-icono { font-size: 32px; line-height: 1; }
+    .kpi-icono.ok { color: #28a745; }
+    .kpi-icono.fail { color: #dc3545; }
+    .kpi-valor { font-size: 38px; font-weight: 700; color: #0f172a; margin-bottom: 5px; }
+    .kpi-valor .unidad { font-size: 20px; color: #64748b; margin-left: 5px; }
+    .kpi-criterio { color: #64748b; font-size: 13px; margin-bottom: 15px; }
+    .kpi-detalle { padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #475569; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #64748b; background-color: #ffffff; border-radius: 12px; border: 2px dashed #cbd5e1; }
+    .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
+</style>
+
+<div class="bi-container">
+    <div class="bi-header">
+        <h1>📊 Dashboard BI</h1>
+        <p>Indicadores de rendimiento filtrados por Cliente y Equipo</p>
+    </div>
+
+    <div class="filtros-panel">
+        <h3>🔍 Filtrar Indicadores</h3>
+        <form method="get" action="">
+            <!-- 🔧 Campo oculto para indicar que se presionó Filtrar -->
+            <input type="hidden" name="aplicar" value="1">
+            
+            <div class="filtros-row">
+                <div class="filtro-item">
+                    <label for="cliente">Cliente:</label>
+                    <!-- 🔧 Quitado el onchange para que NO se envíe solo -->
+                    <select name="cliente" id="cliente">
+                        <option value="">-- Todos los clientes --</option>
+                        {% for code, name in filtros.clientes_disponibles %}
+                            <option value="{{ code }}" {% if filtros.cliente_seleccionado == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filtro-item">
+                    <label for="equipo">Equipo:</label>
+                    <select name="equipo" id="equipo">
+                        <option value="">-- Todos los equipos --</option>
+                        {% for code, name in filtros.equipos_disponibles %}
+                            <option value="{{ code }}" {% if filtros.equipo_seleccionado == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn-filtrar">🔍 Filtrar</button>
+                </div>
+                {% if filtros.cliente_seleccionado or filtros.equipo_seleccionado %}
+                <div>
+                    <a href="?" class="btn-limpiar">✖ Limpiar</a>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card {% if kpis.informe.cumple %}ok{% else %}fail{% endif %}">
+            <div class="kpi-card-header">
+                <h4>⏱ Tiempo de Informe</h4>
+                <span class="kpi-icono {% if kpis.informe.cumple %}ok{% else %}fail{% endif %}">{% if kpis.informe.cumple %}✅{% else %}❌{% endif %}</span>
+            </div>
+            <div class="kpi-valor">{{ kpis.informe.valor }}<span class="unidad">h</span></div>
+            <div class="kpi-criterio">Criterio: {{ kpis.informe.criterio }}</div>
+            <div class="kpi-detalle">Total de informes: <strong>{{ kpis.informe.total }}</strong></div>
+        </div>
+
+        <div class="kpi-card {% if kpis.calibracion.cumple %}ok{% else %}fail{% endif %}">
+            <div class="kpi-card-header">
+                <h4>🎯 Calibraciones Efectivas</h4>
+                <span class="kpi-icono {% if kpis.calibracion.cumple %}ok{% else %}fail{% endif %}">{% if kpis.calibracion.cumple %}✅{% else %}❌{% endif %}</span>
+            </div>
+            <div class="kpi-valor">{{ kpis.calibracion.valor }}<span class="unidad">%</span></div>
+            <div class="kpi-criterio">Criterio: {{ kpis.calibracion.criterio }}</div>
+            <div class="kpi-detalle">Efectivas: <strong>{{ kpis.calibracion.aprobados }}</strong> de <strong>{{ kpis.calibracion.total }}</strong></div>
+        </div>
+
+        <div class="kpi-card {% if kpis.orden.cumple %}ok{% else %}fail{% endif %}">
+            <div class="kpi-card-header">
+                <h4>📳 Órdenes de Vibración</h4>
+                <span class="kpi-icono {% if kpis.orden.cumple %}ok{% else %}fail{% endif %}">{% if kpis.orden.cumple %}✅{% else %}❌{% endif %}</span>
+            </div>
+            <div class="kpi-valor">{{ kpis.orden.valor }}<span class="unidad">%</span></div>
+            <div class="kpi-criterio">Criterio: {{ kpis.orden.criterio }}</div>
+            <div class="kpi-detalle">Efectivas: <strong>{{ kpis.orden.aprobados }}</strong> de <strong>{{ kpis.orden.total }}</strong></div>
+        </div>
+
+        <div class="kpi-card {% if kpis.diagnostico.cumple %}ok{% else %}fail{% endif %}">
+            <div class="kpi-card-header">
+                <h4>🔬 Tiempo de Diagnóstico</h4>
+                <span class="kpi-icono {% if kpis.diagnostico.cumple %}ok{% else %}fail{% endif %}">{% if kpis.diagnostico.cumple %}✅{% else %}❌{% endif %}</span>
+            </div>
+            <div class="kpi-valor">{{ kpis.diagnostico.valor }}<span class="unidad">min</span></div>
+            <div class="kpi-criterio">Criterio: {{ kpis.diagnostico.criterio }}</div>
+            <div class="kpi-detalle">Total de diagnósticos: <strong>{{ kpis.diagnostico.total }}</strong></div>
+        </div>
+    </div>
+
+    {% if alertas %}
+    <div style="background:#ffffff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+        <h3 style="margin-top:0; color:#0f172a;">⚠️ Alertas Activas</h3>
+        {% for alerta in alertas %}
+        <div style="padding:12px; background:#fff3cd; border-left:4px solid #ffc107; border-radius:6px; margin-bottom:10px;">
+            <strong>{{ alerta.titulo }}</strong>
+            <p style="margin:5px 0 0 0; font-size:14px;">{{ alerta.descripcion }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

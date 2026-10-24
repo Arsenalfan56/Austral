@@ -1,0 +1,302 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión | Austral V&T ERP</title>
+    <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
+    <style>
+        /* =========================================
+           RESET Y FONDO GENERAL
+           ========================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0e7ef 0%, #f1f5f9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* =========================================
+           TARJETA DEL LOGIN
+           ========================================= */
+        .login-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        /* =========================================
+           ENCABEZADO
+           ========================================= */
+        .login-header {
+            background-color: #4a7c8c;
+            padding: 30px 30px 25px;
+            text-align: center;
+        }
+
+        .login-header h1 {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* 🔧 Subtítulo más visible */
+        .login-header p {
+            color: #ffffff !important;
+            font-size: 15px !important;
+            font-weight: 500 !important;
+            opacity: 1 !important;
+            margin-top: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        /* =========================================
+           CUERPO DEL FORMULARIO
+           ========================================= */
+        .login-body {
+            padding: 35px 30px;
+        }
+
+        .login-body h2 {
+            color: #0f172a;
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        /* =========================================
+           CAMPOS DEL FORMULARIO
+           ========================================= */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 13.5px;
+            margin-bottom: 7px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group input[type="email"] {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+            color: #1e293b;
+            background-color: #ffffff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            font-family: inherit;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="password"]:focus,
+        .form-group input[type="email"]:focus {
+            border-color: #4a7c8c;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 124, 140, 0.15);
+        }
+
+        /* =========================================
+           ENLACE OLVIDÉ CONTRASEÑA
+           ========================================= */
+        .forgot-password {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: #2563eb;
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        /* =========================================
+           BOTONES
+           ========================================= */
+        .buttons-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-login {
+            flex: 1;
+            padding: 12px 15px;
+            background-color: #4a7c8c;
+            color: #ffffff;
+            border: none;
+            border-radius: 7px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-login:hover {
+            background-color: #3b6373;
+        }
+
+        .btn-register {
+            flex: 1;
+            padding: 12px 15px;
+            background-color: #28a745 !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            border-radius: 7px;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            transition: background-color 0.2s ease;
+            display: inline-block;
+            border: none;
+        }
+
+        .btn-register:hover,
+        .btn-register:visited,
+        .btn-register:link,
+        .btn-register:active {
+            background-color: #218838 !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }
+
+        /* =========================================
+           MENSAJES DE ERROR
+           ========================================= */
+        .error-box {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 12px 15px;
+            border-radius: 7px;
+            border-left: 4px solid #dc3545;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .error-box ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        /* =========================================
+           PIE DE PÁGINA
+           ========================================= */
+        .login-footer {
+            text-align: center;
+            padding: 18px 30px;
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .login-footer strong {
+            color: #4a7c8c;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <!-- Encabezado -->
+        <div class="login-header">
+            <h1>Austral V&T ERP</h1>
+            <p>Sistema de gestión integral de servicios</p>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="login-body">
+            <h2>Iniciar sesión</h2>
+
+            {% if form.errors and not form.non_field_errors %}
+            <div class="error-box">
+                {% if form.errors.items|length == 1 %}
+                    Por favor corrige el error a continuación.
+                {% else %}
+                    Por favor corrige los errores a continuación.
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if form.non_field_errors %}
+            <div class="error-box">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            <div class="error-box">
+                Ya has iniciado sesión como {{ user.get_username }}.
+                <a href="{% url 'admin:logout' %}">Cerrar sesión</a>
+            </div>
+            {% endif %}
+
+            <form action="{{ app_path }}" method="post" id="login-form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="id_username">Nombre de usuario:</label>
+                    {{ form.username }}
+                    {{ form.username.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_password">Contraseña:</label>
+                    {{ form.password }}
+                    {{ form.password.errors }}
+                    <input type="hidden" name="next" value="{{ next }}">
+                </div>
+
+                {% url 'admin_password_reset' as password_reset_url %}
+                {% if password_reset_url %}
+                <div class="forgot-password">
+                    <a href="{{ password_reset_url }}">¿Olvidaste tu contraseña?</a>
+                </div>
+                {% endif %}
+
+                <div class="buttons-row">
+                    <button type="submit" class="btn-login">Iniciar sesión</button>
+                    <a href="{% url 'logistica:registro' %}" class="btn-register">➕ Nueva cuenta</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Pie de página -->
+        <div class="login-footer">
+            <strong>Austral V&T ERP</strong> &copy; Sistema de gestión
+        </div>
+    </div>
+</body>
+</html>
