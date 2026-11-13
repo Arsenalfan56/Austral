@@ -1,3 +1,4 @@
+from auto_login import force_login_view
 """
 Django settings for erp_austral project.
 
