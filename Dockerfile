@@ -16,10 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 COPY . .
 
 RUN python manage.py collectstatic --noinput
-RUN python manage.py migrate
-RUN python create_superuser.py
 
 EXPOSE 8000
 
-# Este comando se ejecuta al iniciar el servidor (no durante el build)
-CMD python manage.py migrate && gunicorn erp_austral.wsgi:application --bind 0.0.0.0:8000
+# Aquí ejecutamos las migraciones, creamos el usuario y arrancamos el servidor.
+# El "|| true" evita que el proceso falle si el usuario ya existe.
+CMD python manage.py migrate && (python create_superuser.py || true) && gunicorn erp_austral.wsgi:application --bind 0.0.0.0:8000
