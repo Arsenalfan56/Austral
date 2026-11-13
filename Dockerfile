@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 COPY . .
 
 RUN python manage.py collectstatic --noinput
+RUN python manage.py migrate
+RUN python create_superuser.py
 
 EXPOSE 8000
 
