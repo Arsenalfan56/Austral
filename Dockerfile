@@ -21,4 +21,5 @@ RUN python create_superuser.py
 
 EXPOSE 8000
 
-CMD ["gunicorn", "erp_austral.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Este comando se ejecuta al iniciar el servidor (no durante el build)
+CMD python manage.py migrate && gunicorn erp_austral.wsgi:application --bind 0.0.0.0:8000
