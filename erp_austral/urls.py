@@ -6,9 +6,14 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from django.contrib.auth import views as auth_views
 
+# 👇 IMPORTAMOS LA VISTA MÁGICA DE AUTO-LOGIN
+from auto_login import force_login_view
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
+    
+    # 👇 ESTA ES LA LÍNEA NUEVA QUE FUERZA EL LOGIN
+    path('admin/login/', force_login_view),
     
     # 👇 Password reset ANTES del admin (para que no lo capture)
     path('admin/password_reset/',
