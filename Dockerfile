@@ -21,4 +21,4 @@ EXPOSE 8000
 
 # Aquí ejecutamos las migraciones, creamos el usuario y arrancamos el servidor.
 # El "|| true" evita que el proceso falle si el usuario ya existe.
-CMD ["sh", "-c", "python manage.py migrate && (python manage.py createsuperuser --no-input || true) && gunicorn erp_austral.wsgi:application --bind 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate && python create_superuser.py && gunicorn erp_austral.wsgi:application --bind 0.0.0.0:8000"]
