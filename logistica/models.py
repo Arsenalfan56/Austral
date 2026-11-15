@@ -2,7 +2,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.core.validators import RegexValidator  # <-- IMPORTANTE AÑADIDO
+from django.core.validators import RegexValidator
 import qrcode
 from io import BytesIO
 from django.core.files import File
@@ -42,15 +42,14 @@ class Equipo(models.Model):
 
     nombre = models.CharField(max_length=100, choices=OPCIONES_EQUIPO, verbose_name="Nombre del Equipo")
     
-    # VALIDADOR AÑADIDO PARA MANTENER CONSISTENCIA
     codigo_serial = models.CharField(
-        max_length=50, 
+        max_length=5, 
         unique=True, 
         verbose_name="Código Serial",
         validators=[
             RegexValidator(
-                regex=r'^\d+$',
-                message='El código serial debe contener solo números.',
+                regex=r'^\d{5}$',
+                message='El código serial debe contener exactamente 5 números.',
                 code='invalid_serial'
             )
         ]
@@ -124,14 +123,13 @@ class RegistroCalibracion(models.Model):
 
     equipo = models.CharField(max_length=100, choices=OPCIONES_EQUIPO_CALIBRACION, verbose_name="Equipo", default='transmisor_presion')
     
-    # VALIDADOR APLICADO
     codigo_serial = models.CharField(
-        max_length=50,
+        max_length=5,
         verbose_name="Código Serial",
         validators=[
             RegexValidator(
-                regex=r'^\d+$',
-                message='El código serial debe contener solo números.',
+                regex=r'^\d{5}$',
+                message='El código serial debe contener exactamente 5 números.',
                 code='invalid_serial'
             )
         ]
@@ -184,14 +182,13 @@ class OrdenVibracion(models.Model):
 
     equipo = models.CharField(max_length=100, choices=OPCIONES_EQUIPO_VIBRACION, verbose_name="Equipo", default='bently_nevada')
     
-    # VALIDADOR APLICADO
     codigo_serial = models.CharField(
-        max_length=50,
+        max_length=5,
         verbose_name="Código Serial",
         validators=[
             RegexValidator(
-                regex=r'^\d+$',
-                message='El código serial debe contener solo números.',
+                regex=r'^\d{5}$',
+                message='El código serial debe contener exactamente 5 números.',
                 code='invalid_serial'
             )
         ]
@@ -245,16 +242,15 @@ class DiagnosticoPredictivo(models.Model):
 
     equipo = models.CharField(max_length=150, verbose_name="Equipo")
     
-    # VALIDADOR APLICADO (Mantenemos blank=True y null=True por si no se requiere siempre)
     codigo_serial = models.CharField(
-        max_length=50, 
+        max_length=5, 
         verbose_name="Código Serial", 
         blank=True, 
         null=True,
         validators=[
             RegexValidator(
-                regex=r'^\d+$',
-                message='El código serial debe contener solo números.',
+                regex=r'^\d{5}$',
+                message='El código serial debe contener exactamente 5 números.',
                 code='invalid_serial'
             )
         ]
@@ -311,14 +307,13 @@ class RegistroInforme(models.Model):
     titulo = models.CharField(max_length=200, verbose_name="Título del informe")
     equipo = models.CharField(max_length=150, verbose_name="Equipo", blank=True)
     
-    # VALIDADOR APLICADO
     codigo_serial = models.CharField(
-        max_length=50, 
+        max_length=5, 
         verbose_name="Código Serial",
         validators=[
             RegexValidator(
-                regex=r'^\d+$',
-                message='El código serial debe contener solo números.',
+                regex=r'^\d{5}$',
+                message='El código serial debe contener exactamente 5 números.',
                 code='invalid_serial'
             )
         ]
