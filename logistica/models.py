@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator  # <-- IMPORTANTE AÑADIDO
 import qrcode
 from io import BytesIO
 from django.core.files import File
@@ -40,7 +41,21 @@ class Equipo(models.Model):
     ]
 
     nombre = models.CharField(max_length=100, choices=OPCIONES_EQUIPO, verbose_name="Nombre del Equipo")
-    codigo_serial = models.CharField(max_length=50, unique=True, verbose_name="Código Serial")
+    
+    # VALIDADOR AÑADIDO PARA MANTENER CONSISTENCIA
+    codigo_serial = models.CharField(
+        max_length=50, 
+        unique=True, 
+        verbose_name="Código Serial",
+        validators=[
+            RegexValidator(
+                regex=r'^\d+$',
+                message='El código serial debe contener solo números.',
+                code='invalid_serial'
+            )
+        ]
+    )
+    
     cliente = models.CharField(max_length=100, choices=OPCIONES_CLIENTE, default='pdvsa', verbose_name="Cliente")
     estado = models.CharField(max_length=50, default='Activo', verbose_name="Estado")
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True, verbose_name="Código QR")
@@ -108,7 +123,20 @@ class RegistroCalibracion(models.Model):
     ]
 
     equipo = models.CharField(max_length=100, choices=OPCIONES_EQUIPO_CALIBRACION, verbose_name="Equipo", default='transmisor_presion')
-    codigo_serial = models.CharField(max_length=50, verbose_name="Código Serial")
+    
+    # VALIDADOR APLICADO
+    codigo_serial = models.CharField(
+        max_length=50,
+        verbose_name="Código Serial",
+        validators=[
+            RegexValidator(
+                regex=r'^\d+$',
+                message='El código serial debe contener solo números.',
+                code='invalid_serial'
+            )
+        ]
+    )
+    
     cliente = models.CharField(max_length=100, choices=OPCIONES_CLIENTE_CALIBRACION, verbose_name="Cliente", default='pdvsa')
     
     tiene_precision = models.BooleanField(default=False, verbose_name="¿Tiene precisión?")
@@ -155,7 +183,20 @@ class OrdenVibracion(models.Model):
     ]
 
     equipo = models.CharField(max_length=100, choices=OPCIONES_EQUIPO_VIBRACION, verbose_name="Equipo", default='bently_nevada')
-    codigo_serial = models.CharField(max_length=50, verbose_name="Código Serial")
+    
+    # VALIDADOR APLICADO
+    codigo_serial = models.CharField(
+        max_length=50,
+        verbose_name="Código Serial",
+        validators=[
+            RegexValidator(
+                regex=r'^\d+$',
+                message='El código serial debe contener solo números.',
+                code='invalid_serial'
+            )
+        ]
+    )
+    
     cliente = models.CharField(max_length=100, choices=OPCIONES_CLIENTE_VIBRACION, verbose_name="Cliente", default='pdvsa')
 
     # CAMPOS DE CHECKLIST (Basados en Fase II - Cuadros 14, 15 y 18)
@@ -203,7 +244,22 @@ class DiagnosticoPredictivo(models.Model):
     ]
 
     equipo = models.CharField(max_length=150, verbose_name="Equipo")
-    codigo_serial = models.CharField(max_length=50, verbose_name="Código Serial", blank=True, null=True)
+    
+    # VALIDADOR APLICADO (Mantenemos blank=True y null=True por si no se requiere siempre)
+    codigo_serial = models.CharField(
+        max_length=50, 
+        verbose_name="Código Serial", 
+        blank=True, 
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r'^\d+$',
+                message='El código serial debe contener solo números.',
+                code='invalid_serial'
+            )
+        ]
+    )
+    
     cliente = models.CharField(max_length=100, choices=OPCIONES_CLIENTE, verbose_name="Cliente", default='pdvsa')
     servicio = models.CharField(max_length=20, choices=OPCIONES_SERVICIO, verbose_name="Servicio", default='calibracion')
 
@@ -254,7 +310,20 @@ class RegistroInforme(models.Model):
 
     titulo = models.CharField(max_length=200, verbose_name="Título del informe")
     equipo = models.CharField(max_length=150, verbose_name="Equipo", blank=True)
-    codigo_serial = models.CharField(max_length=50, verbose_name="Código Serial")
+    
+    # VALIDADOR APLICADO
+    codigo_serial = models.CharField(
+        max_length=50, 
+        verbose_name="Código Serial",
+        validators=[
+            RegexValidator(
+                regex=r'^\d+$',
+                message='El código serial debe contener solo números.',
+                code='invalid_serial'
+            )
+        ]
+    )
+    
     cliente = models.CharField(max_length=100, choices=OPCIONES_CLIENTE, verbose_name="Cliente", default='pdvsa')
     servicio = models.CharField(max_length=20, choices=OPCIONES_SERVICIO, verbose_name="Servicio", default='calibracion')
     
