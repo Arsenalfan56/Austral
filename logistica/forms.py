@@ -1,5 +1,4 @@
 # logistica/forms.py
-# logistica/forms.py
 from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -13,10 +12,10 @@ from .models import RegistroCalibracion, OrdenVibracion, DiagnosticoPredictivo, 
 
 class RegistroCalibracionForm(forms.ModelForm):
     codigo_serial = forms.CharField(
-        max_length=50,
+        max_length=5,  # <-- Cambiado a 5
         required=True,
         label="Código Serial",
-        widget=forms.TextInput(attrs={'placeholder': 'Ej: TX-001'})
+        widget=forms.TextInput(attrs={'placeholder': 'Ej: 12345'}) # <-- Placeholder actualizado
     )
     
     class Meta:
@@ -26,10 +25,10 @@ class RegistroCalibracionForm(forms.ModelForm):
 
 class OrdenVibracionForm(forms.ModelForm):
     codigo_serial = forms.CharField(
-        max_length=50,
+        max_length=5,  # <-- Cambiado a 5
         required=True,
         label="Código Serial",
-        widget=forms.TextInput(attrs={'placeholder': 'Ej: BN-001'})
+        widget=forms.TextInput(attrs={'placeholder': 'Ej: 12345'}) # <-- Placeholder actualizado
     )
     
     class Meta:
@@ -178,8 +177,8 @@ class RegistroInformeForm(forms.ModelForm):
 
     class Meta:
         model = RegistroInforme
-        # 🔧 CORRECCIÓN: Agregar 'codigo_serial' a fields
-        fields = ['titulo', 'equipo', 'codigo_serial', 'cliente', 'servicio', 'hora_inicio', 'hora_fin']
+        # 🔧 CORRECCIÓN: Agregar 'codigo_serial' a fields (quitamos 'titulo')
+        fields = ['equipo', 'codigo_serial', 'cliente', 'servicio', 'hora_inicio', 'hora_fin']
         widgets = {
             'cliente': forms.Select(attrs={'id': 'id_cliente_informe', 'style': 'pointer-events: none; background-color: #e9ecef;'}),
             'servicio': forms.Select(attrs={'id': 'id_servicio_informe', 'style': 'pointer-events: none; background-color: #e9ecef;'}),
