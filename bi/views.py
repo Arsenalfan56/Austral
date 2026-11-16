@@ -15,12 +15,7 @@ from .models import Alerta
 def dashboard_general(request):
     """
     Dashboard BI con 4 KPIs.
-    - Por defecto, TODOS los KPIs aparecen en 0 y en ROJO.
-    - Solo se calculan cuando el usuario presiona "Filtrar" (parámetro ?aplicar=1).
-    - KPI Calibraciones y Órdenes de Vibración: % de cumplimiento según checkboxes.
-    - KPI Tiempo de Informe: promedio en horas (≤ 2h).
-    - KPI Tiempo de Diagnóstico: promedio en minutos (≤ 30 min).
-    - NUEVO: Filtro por rango de fechas (fecha_inicio y fecha_fin).
+    - Los filtros (Cliente, Equipo y Fechas) son opcionales e independientes.
     """
     # ==========================================
     # FILTROS DINÁMICOS
@@ -29,7 +24,7 @@ def dashboard_general(request):
     equipo_filtro = request.GET.get('equipo', '')
     fecha_inicio_filtro = request.GET.get('fecha_inicio', '')
     fecha_fin_filtro = request.GET.get('fecha_fin', '')
-    aplicar = request.GET.get('aplicar', '0')  # Bandera para saber si se presionó Filtrar
+    aplicar = request.GET.get('aplicar', '0') 
 
     # ==========================================
     # CLIENTES DISPONIBLES
@@ -71,17 +66,13 @@ def dashboard_general(request):
         inf_qs = inf_qs.filter(cliente=cliente_filtro)
 
     for reg in calib_qs:
-        if reg.equipo:
-            equipos_disponibles.add(reg.equipo)
+        if reg.equipo: equipos_disponibles.add(reg.equipo)
     for ord_v in orden_qs:
-        if ord_v.equipo:
-            equipos_disponibles.add(ord_v.equipo)
+        if ord_v.equipo: equipos_disponibles.add(ord_v.equipo)
     for diag in diag_qs:
-        if diag.equipo:
-            equipos_disponibles.add(diag.equipo)
+        if diag.equipo: equipos_disponibles.add(diag.equipo)
     for inf in inf_qs:
-        if inf.equipo:
-            equipos_disponibles.add(inf.equipo)
+        if inf.equipo: equipos_disponibles.add(inf.equipo)
 
     equipos_disponibles = sorted(
         [(code, mapa_equipos.get(code, code)) for code in equipos_disponibles],
@@ -92,56 +83,44 @@ def dashboard_general(request):
     # VALORES POR DEFECTO (0 y ROJO)
     # ==========================================
     kpis = {
-        'informe': {
-            'nombre': 'Tiempo de Informe',
-            'valor': 0, 'unidad': 'h', 'criterio': '≤ 2 h',
-            'cumple': False, 'total': 0,
-        },
-        'calibracion': {
-            'nombre': 'Calibraciones Efectivas',
-            'valor': 0, 'unidad': '%', 'criterio': '≥ 95%',
-            'cumple': False, 'aprobados': 0, 'total': 0,
-        },
-        'orden': {
-            'nombre': 'Órdenes de Vibración',
-            'valor': 0, 'unidad': '%', 'criterio': '≥ 95%',
-            'cumple': False, 'aprobados': 0, 'total': 0,
-        },
-        'diagnostico': {
-            'nombre': 'Tiempo de Diagnóstico',
-            'valor': 0, 'unidad': 'min', 'criterio': '≤ 30 min',
-            'cumple': False, 'total': 0,
-        },
+        'informe': {'nombre': 'Tiempo de Informe', 'valor': 0, 'unidad': 'h', 'criterio': '≤ 2 h', 'cumple': False, 'total': 0},
+        'calibracion': {'nombre': 'Calibraciones Efectivas', 'valor': 0, 'unidad': '%', 'criterio': '≥ 95%', 'cumple': False, 'aprobados': 0, 'total': 0},
+        'orden': {'nombre': 'Órdenes de Vibración', 'valor': 0, 'unidad': '%', 'criterio': '≥ 95%', 'cumple': False, 'aprobados': 0, 'total': 0},
+        'diagnostico': {'nombre': 'Tiempo de Diagnóstico', 'valor': 0, 'unidad': 'min', 'criterio': '≤ 30 min', 'cumple': False, 'total': 0},
     }
 
     # ==========================================
-    # CALCULAR SOLO SI SE PRESIONÓ FILTRAR Y HAY CLIENTE + EQUIPO
+    # CALCULAR SOLO SI SE PRESIONÓ FILTRAR
     # ==========================================
-    if aplicar == '1' and cliente_filtro and equipo_filtro:
-        calibraciones = RegistroCalibracion.objects.filter(
-            cliente=cliente_filtro, equipo=equipo_filtro
-        )
-        ordenes = OrdenVibracion.objects.filter(
-            cliente=cliente_filtro, equipo=equipo_filtro
-        )
-        diagnosticos = DiagnosticoPredictivo.objects.filter(
-            cliente=cliente_filtro
-        ).filter(
-            Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro)
-        )
-        informes = RegistroInforme.objects.filter(
-            cliente=cliente_filtro, equipo=equipo_filtro
-        )
+    if aplicar == '1':
+        # Iniciamos con todos los registros
+        calibraciones = RegistroCalibracion.objects.all()
+        ordenes = OrdenVibracion.objects.all()
+        diagnosticos = DiagnosticoPredictivo.objects.all()
+        informes = RegistroInforme.objects.all()
 
-        # ==========================================
-        # APLICAR FILTROS DE FECHA (NUEVO)
-        # ==========================================
+        # Filtro por Cliente (Opcional)
+        if cliente_filtro:
+            calibraciones = calibraciones.filter(cliente=cliente_filtro)
+            ordenes = ordenes.filter(cliente=cliente_filtro)
+            diagnosticos = diagnosticos.filter(cliente=cliente_filtro)
+            informes = informes.filter(cliente=cliente_filtro)
+
+        # Filtro por Equipo (Opcional)
+        if equipo_filtro:
+            calibraciones = calibraciones.filter(equipo=equipo_filtro)
+            ordenes = ordenes.filter(equipo=equipo_filtro)
+            diagnosticos = diagnosticos.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
+            informes = informes.filter(equipo=equipo_filtro)
+
+        # Filtro por Fecha de Inicio (Opcional)
         if fecha_inicio_filtro:
             calibraciones = calibraciones.filter(fecha_registro__date__gte=fecha_inicio_filtro)
             ordenes = ordenes.filter(fecha_registro__date__gte=fecha_inicio_filtro)
             diagnosticos = diagnosticos.filter(fecha_inicio__date__gte=fecha_inicio_filtro)
             informes = informes.filter(hora_inicio__date__gte=fecha_inicio_filtro)
 
+        # Filtro por Fecha de Fin (Opcional)
         if fecha_fin_filtro:
             calibraciones = calibraciones.filter(fecha_registro__date__lte=fecha_fin_filtro)
             ordenes = ordenes.filter(fecha_registro__date__lte=fecha_fin_filtro)
@@ -149,75 +128,71 @@ def dashboard_general(request):
             informes = informes.filter(hora_inicio__date__lte=fecha_fin_filtro)
 
         # ==========================================
-        # KPI 1: TIEMPO DE INFORME (promedio en HORAS)
+        # KPI 1: TIEMPO DE INFORME
         # ==========================================
         total_informes = informes.count()
-        promedio_horas = informes.filter(
-            tiempo_generacion_horas__gt=0
-        ).aggregate(prom=Avg('tiempo_generacion_horas'))['prom'] or 0
+        promedio_horas = informes.filter(tiempo_generacion_horas__gt=0).aggregate(prom=Avg('tiempo_generacion_horas'))['prom'] or 0
         promedio_horas = round(promedio_horas, 2)
-        kpi_informe_ok = (total_informes > 0 and promedio_horas <= 2)
+        
+        kpis['informe'].update({
+            'valor': promedio_horas, 
+            'cumple': (total_informes > 0 and promedio_horas <= 2), 
+            'total': total_informes,
+        })
 
         # ==========================================
-        # KPI 2: CALIBRACIONES EFECTIVAS (% por checkboxes)
+        # KPI 2: CALIBRACIONES EFECTIVAS
         # ==========================================
         total_calibraciones = calibraciones.count()
         if total_calibraciones > 0:
-            suma_calib = 0
-            for reg in calibraciones:
-                if reg.tiene_precision: suma_calib += 1
-                if reg.tiene_confiabilidad: suma_calib += 1
-                if reg.cumple_estandares: suma_calib += 1
-            total_posibles = total_calibraciones * 3
-            pct_calibraciones = round((suma_calib / total_posibles * 100), 1)
+            suma_calib = sum(1 for reg in calibraciones if reg.tiene_precision) + \
+                         sum(1 for reg in calibraciones if reg.tiene_confiabilidad) + \
+                         sum(1 for reg in calibraciones if reg.cumple_estandares)
+            pct_calibraciones = round((suma_calib / (total_calibraciones * 3) * 100), 1)
             calibraciones_ok = calibraciones.filter(es_efectiva=True).count()
         else:
             pct_calibraciones = 0
             calibraciones_ok = 0
-        kpi_calibracion_ok = (total_calibraciones > 0 and pct_calibraciones >= 95)
+            
+        kpis['calibracion'].update({
+            'valor': pct_calibraciones, 
+            'cumple': (total_calibraciones > 0 and pct_calibraciones >= 95), 
+            'aprobados': calibraciones_ok, 
+            'total': total_calibraciones,
+        })
 
         # ==========================================
-        # KPI 3: ÓRDENES DE VIBRACIÓN EFECTIVAS (% por checkboxes)
+        # KPI 3: ÓRDENES DE VIBRACIÓN
         # ==========================================
         total_ordenes = ordenes.count()
         if total_ordenes > 0:
-            suma_orden = 0
-            for reg in ordenes:
-                if reg.diagnostico_completo: suma_orden += 1
-                if reg.cumple_estandares: suma_orden += 1
-                if reg.registro_estructurado: suma_orden += 1
-            total_posibles = total_ordenes * 3
-            pct_ordenes = round((suma_orden / total_posibles * 100), 1)
+            suma_orden = sum(1 for reg in ordenes if reg.diagnostico_completo) + \
+                         sum(1 for reg in ordenes if reg.cumple_estandares) + \
+                         sum(1 for reg in ordenes if reg.registro_estructurado)
+            pct_ordenes = round((suma_orden / (total_ordenes * 3) * 100), 1)
             ordenes_ok = ordenes.filter(es_efectiva=True).count()
         else:
             pct_ordenes = 0
             ordenes_ok = 0
-        kpi_orden_ok = (total_ordenes > 0 and pct_ordenes >= 95)
+            
+        kpis['orden'].update({
+            'valor': pct_ordenes, 
+            'cumple': (total_ordenes > 0 and pct_ordenes >= 95), 
+            'aprobados': ordenes_ok, 
+            'total': total_ordenes,
+        })
 
         # ==========================================
-        # KPI 4: TIEMPO DE DIAGNÓSTICO (promedio en MINUTOS)
+        # KPI 4: TIEMPO DE DIAGNÓSTICO
         # ==========================================
         total_diagnosticos = diagnosticos.count()
-        promedio_minutos = diagnosticos.filter(
-            tiempo_total_minutos__gt=0
-        ).aggregate(prom=Avg('tiempo_total_minutos'))['prom'] or 0
+        promedio_minutos = diagnosticos.filter(tiempo_total_minutos__gt=0).aggregate(prom=Avg('tiempo_total_minutos'))['prom'] or 0
         promedio_minutos = round(promedio_minutos, 1)
-        kpi_diagnostico_ok = (total_diagnosticos > 0 and promedio_minutos <= 30)
-
-        # ---- Actualizar KPIs ----
-        kpis['informe'].update({
-            'valor': promedio_horas, 'cumple': kpi_informe_ok, 'total': total_informes,
-        })
-        kpis['calibracion'].update({
-            'valor': pct_calibraciones, 'cumple': kpi_calibracion_ok,
-            'aprobados': calibraciones_ok, 'total': total_calibraciones,
-        })
-        kpis['orden'].update({
-            'valor': pct_ordenes, 'cumple': kpi_orden_ok,
-            'aprobados': ordenes_ok, 'total': total_ordenes,
-        })
+        
         kpis['diagnostico'].update({
-            'valor': promedio_minutos, 'cumple': kpi_diagnostico_ok, 'total': total_diagnosticos,
+            'valor': promedio_minutos, 
+            'cumple': (total_diagnosticos > 0 and promedio_minutos <= 30), 
+            'total': total_diagnosticos,
         })
 
     # ==========================================
@@ -227,8 +202,8 @@ def dashboard_general(request):
         'filtros': {
             'cliente_seleccionado': cliente_filtro,
             'equipo_seleccionado': equipo_filtro,
-            'fecha_inicio_seleccionada': fecha_inicio_filtro, # <-- NUEVO
-            'fecha_fin_seleccionada': fecha_fin_filtro,       # <-- NUEVO
+            'fecha_inicio_seleccionada': fecha_inicio_filtro,
+            'fecha_fin_seleccionada': fecha_fin_filtro,
             'clientes_disponibles': clientes_disponibles,
             'equipos_disponibles': equipos_disponibles,
             'aplicar': aplicar,
