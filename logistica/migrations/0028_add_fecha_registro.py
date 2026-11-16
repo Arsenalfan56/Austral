@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logistica', '0027_remove_diagnosticopredictivo_codigo_serial'),
+        ('logistica', '0027_remove_diagnosticopredictivo_tiempo_total_horas_and_more'),
     ]
 
     operations = [
