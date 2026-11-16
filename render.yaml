@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: austral
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn erp_austral.wsgi:application"
