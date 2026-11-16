@@ -1,5 +1,4 @@
 # logistica/admin.py
-# logistica/admin.py
 from django.utils.safestring import mark_safe
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -144,12 +143,15 @@ class RegistroInformeAdmin(admin.ModelAdmin):
     )
     list_filter = ('cliente', 'servicio', 'hora_inicio')
     search_fields = ('titulo', 'equipo', 'cliente', 'codigo_serial')
-    readonly_fields = ('tiempo_generacion_horas',)
+    
+    # AQUÍ EL AJUSTE: Agregamos 'titulo' para que se pueda ver en la pantalla de detalle
+    readonly_fields = ('tiempo_generacion_horas', 'titulo')
+    
     date_hierarchy = 'hora_inicio'
 
     def fecha_inicio_display(self, obj):
         return obj.hora_inicio
-    fecha_inicio_display.short_description = "Fecha de y Hora Inicio"
+    fecha_inicio_display.short_description = "Fecha y Hora Inicio"
 
     def fecha_fin_display(self, obj):
         return obj.hora_fin
