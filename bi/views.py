@@ -20,12 +20,15 @@ def dashboard_general(request):
     - KPI Calibraciones y Órdenes de Vibración: % de cumplimiento según checkboxes.
     - KPI Tiempo de Informe: promedio en horas (≤ 2h).
     - KPI Tiempo de Diagnóstico: promedio en minutos (≤ 30 min).
+    - NUEVO: Filtro por rango de fechas (fecha_inicio y fecha_fin).
     """
     # ==========================================
     # FILTROS DINÁMICOS
     # ==========================================
     cliente_filtro = request.GET.get('cliente', '')
     equipo_filtro = request.GET.get('equipo', '')
+    fecha_inicio_filtro = request.GET.get('fecha_inicio', '')
+    fecha_fin_filtro = request.GET.get('fecha_fin', '')
     aplicar = request.GET.get('aplicar', '0')  # Bandera para saber si se presionó Filtrar
 
     # ==========================================
@@ -131,6 +134,21 @@ def dashboard_general(request):
         )
 
         # ==========================================
+        # APLICAR FILTROS DE FECHA (NUEVO)
+        # ==========================================
+        if fecha_inicio_filtro:
+            calibraciones = calibraciones.filter(fecha_registro__date__gte=fecha_inicio_filtro)
+            ordenes = ordenes.filter(fecha_registro__date__gte=fecha_inicio_filtro)
+            diagnosticos = diagnosticos.filter(fecha_inicio__date__gte=fecha_inicio_filtro)
+            informes = informes.filter(hora_inicio__date__gte=fecha_inicio_filtro)
+
+        if fecha_fin_filtro:
+            calibraciones = calibraciones.filter(fecha_registro__date__lte=fecha_fin_filtro)
+            ordenes = ordenes.filter(fecha_registro__date__lte=fecha_fin_filtro)
+            diagnosticos = diagnosticos.filter(fecha_inicio__date__lte=fecha_fin_filtro)
+            informes = informes.filter(hora_inicio__date__lte=fecha_fin_filtro)
+
+        # ==========================================
         # KPI 1: TIEMPO DE INFORME (promedio en HORAS)
         # ==========================================
         total_informes = informes.count()
@@ -178,7 +196,6 @@ def dashboard_general(request):
 
         # ==========================================
         # KPI 4: TIEMPO DE DIAGNÓSTICO (promedio en MINUTOS)
-        # 🔧 CORRECCIÓN: El campo tiempo_total_minutos YA está en minutos
         # ==========================================
         total_diagnosticos = diagnosticos.count()
         promedio_minutos = diagnosticos.filter(
@@ -210,6 +227,8 @@ def dashboard_general(request):
         'filtros': {
             'cliente_seleccionado': cliente_filtro,
             'equipo_seleccionado': equipo_filtro,
+            'fecha_inicio_seleccionada': fecha_inicio_filtro, # <-- NUEVO
+            'fecha_fin_seleccionada': fecha_fin_filtro,       # <-- NUEVO
             'clientes_disponibles': clientes_disponibles,
             'equipos_disponibles': equipos_disponibles,
             'aplicar': aplicar,
