@@ -1,7 +1,7 @@
-# bi/views.py
 from django.shortcuts import render
-from django.db.models import Avg, Q
+from django.db.models import Avg, Q, Count
 from django.contrib.auth.decorators import login_required
+from django.utils.dateparse import parse_date
 from logistica.models import (
     RegistroCalibracion,
     OrdenVibracion,
@@ -10,72 +10,67 @@ from logistica.models import (
 )
 from .models import Alerta
 
-
 @login_required
 def dashboard_general(request):
     """
-    Dashboard BI con 4 KPIs.
-    - Los filtros (Cliente, Equipo y Fechas) son opcionales e independientes.
+    Dashboard BI con 4 KPIs optimizado.
+    - Filtros dinámicos por Cliente, Equipo y Fechas.
     """
     # ==========================================
-    # FILTROS DINÁMICOS
+    # CAPTURA Y VALIDACIÓN DE FILTROS
     # ==========================================
-    cliente_filtro = request.GET.get('cliente', '')
-    equipo_filtro = request.GET.get('equipo', '')
-    fecha_inicio_filtro = request.GET.get('fecha_inicio', '')
-    fecha_fin_filtro = request.GET.get('fecha_fin', '')
+    cliente_filtro = request.GET.get('cliente', '').strip()
+    equipo_filtro = request.GET.get('equipo', '').strip()
     aplicar = request.GET.get('aplicar', '0') 
 
+    # Parseo seguro de fechas
+    fecha_inicio_filtro = request.GET.get('fecha_inicio', '')
+    fecha_fin_filtro = request.GET.get('fecha_fin', '')
+    f_inicio = parse_date(fecha_inicio_filtro) if fecha_inicio_filtro else None
+    f_fin = parse_date(fecha_fin_filtro) if fecha_fin_filtro else None
+
     # ==========================================
-    # CLIENTES DISPONIBLES
+    # OBTENER CLIENTES Y EQUIPOS (Optimizado)
     # ==========================================
     clientes_disponibles = set()
     mapa_clientes = dict(DiagnosticoPredictivo.OPCIONES_CLIENTE)
 
-    for reg in RegistroCalibracion.objects.all():
-        clientes_disponibles.add(reg.cliente)
-    for ord_v in OrdenVibracion.objects.all():
-        clientes_disponibles.add(ord_v.cliente)
-    for diag in DiagnosticoPredictivo.objects.all():
-        clientes_disponibles.add(diag.cliente)
-    for inf in RegistroInforme.objects.all():
-        clientes_disponibles.add(inf.cliente)
+    # Usamos values_list().distinct() para no traer toda la tabla a la memoria
+    clientes_disponibles.update(RegistroCalibracion.objects.values_list('cliente', flat=True).distinct())
+    clientes_disponibles.update(OrdenVibracion.objects.values_list('cliente', flat=True).distinct())
+    clientes_disponibles.update(DiagnosticoPredictivo.objects.values_list('cliente', flat=True).distinct())
+    clientes_disponibles.update(RegistroInforme.objects.values_list('cliente', flat=True).distinct())
 
     clientes_disponibles = sorted(
-        [(code, mapa_clientes.get(code, code)) for code in clientes_disponibles],
+        [(code, mapa_clientes.get(code, code)) for code in clientes_disponibles if code],
         key=lambda x: x[1]
     )
 
-    # ==========================================
-    # EQUIPOS DISPONIBLES
-    # ==========================================
     equipos_disponibles = set()
     mapa_equipos = {}
     mapa_equipos.update(dict(RegistroCalibracion.OPCIONES_EQUIPO_CALIBRACION))
     mapa_equipos.update(dict(OrdenVibracion.OPCIONES_EQUIPO_VIBRACION))
 
+    # Base QuerySets (sin filtros aún)
     calib_qs = RegistroCalibracion.objects.all()
     orden_qs = OrdenVibracion.objects.all()
     diag_qs = DiagnosticoPredictivo.objects.all()
     inf_qs = RegistroInforme.objects.all()
 
+    # Filtrar dropdowns por cliente si el usuario ya seleccionó uno
     if cliente_filtro:
         calib_qs = calib_qs.filter(cliente=cliente_filtro)
         orden_qs = orden_qs.filter(cliente=cliente_filtro)
         diag_qs = diag_qs.filter(cliente=cliente_filtro)
         inf_qs = inf_qs.filter(cliente=cliente_filtro)
 
-    for reg in calib_qs:
-        if reg.equipo: equipos_disponibles.add(reg.equipo)
-    for ord_v in orden_qs:
-        if ord_v.equipo: equipos_disponibles.add(ord_v.equipo)
-    for diag in diag_qs:
-        if diag.equipo: equipos_disponibles.add(diag.equipo)
-    for inf in inf_qs:
-        if inf.equipo: equipos_disponibles.add(inf.equipo)
+    equipos_disponibles.update(calib_qs.values_list('equipo', flat=True).distinct())
+    equipos_disponibles.update(orden_qs.values_list('equipo', flat=True).distinct())
+    equipos_disponibles.update(diag_qs.values_list('equipo', flat=True).distinct())
+    equipos_disponibles.update(inf_qs.values_list('equipo', flat=True).distinct())
 
     equipos_disponibles = sorted(
-        [(code, mapa_equipos.get(code, code)) for code in equipos_disponibles],
+        [(code, mapa_equipos.get(code, code)) for code in equipos_disponibles if code],
         key=lambda x: x[1]
     )
 
@@ -93,42 +88,39 @@ def dashboard_general(request):
     # CALCULAR SOLO SI SE PRESIONÓ FILTRAR
     # ==========================================
     if aplicar == '1':
-        # Iniciamos con todos los registros
         calibraciones = RegistroCalibracion.objects.all()
         ordenes = OrdenVibracion.objects.all()
         diagnosticos = DiagnosticoPredictivo.objects.all()
         informes = RegistroInforme.objects.all()
 
-        # Filtro por Cliente (Opcional)
+        # --- FILTROS COMUNES ---
         if cliente_filtro:
             calibraciones = calibraciones.filter(cliente=cliente_filtro)
             ordenes = ordenes.filter(cliente=cliente_filtro)
             diagnosticos = diagnosticos.filter(cliente=cliente_filtro)
             informes = informes.filter(cliente=cliente_filtro)
 
-        # Filtro por Equipo (Opcional)
         if equipo_filtro:
-            calibraciones = calibraciones.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
-            ordenes = ordenes.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
-            diagnosticos = diagnosticos.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
-            informes = informes.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
+            # Usamos icontains para evitar fallos por mayúsculas/minúsculas
+            calibraciones = calibraciones.filter(equipo__icontains=equipo_filtro)
+            ordenes = ordenes.filter(equipo__icontains=equipo_filtro)
+            diagnosticos = diagnosticos.filter(equipo__icontains=equipo_filtro)
+            informes = informes.filter(equipo__icontains=equipo_filtro)
 
-        # Filtro por Fechas (CORREGIDO CON SUBCONSULTAS POR SERIAL)
-        if fecha_inicio_filtro or fecha_fin_filtro:
-            # 1. Filtramos los diagnósticos e informes por su propia fecha (Ellos sí tienen el campo)
-            if fecha_inicio_filtro:
-                diagnosticos = diagnosticos.filter(fecha_inicio__date__gte=fecha_inicio_filtro)
-                informes = informes.filter(hora_inicio__date__gte=fecha_inicio_filtro)
-            if fecha_fin_filtro:
-                diagnosticos = diagnosticos.filter(fecha_inicio__date__lte=fecha_fin_filtro)
-                informes = informes.filter(hora_inicio__date__lte=fecha_fin_filtro)
+        # --- FILTROS POR FECHAS (Lógica de Seriales) ---
+        if f_inicio or f_fin:
+            if f_inicio:
+                diagnosticos = diagnosticos.filter(fecha_inicio__date__gte=f_inicio)
+                informes = informes.filter(hora_inicio__date__gte=f_inicio)
+            if f_fin:
+                diagnosticos = diagnosticos.filter(fecha_inicio__date__lte=f_fin)
+                informes = informes.filter(hora_inicio__date__lte=f_fin)
 
-            # 2. Para Calibraciones y Órdenes, extraemos los seriales de los diagnósticos en ese rango de fechas
-            # Filtramos por servicio='calibracion' o 'vibracion' y evitamos seriales nulos
+            # Extraemos los seriales usando subconsultas
             serials_calibracion = diagnosticos.filter(servicio='calibracion', codigo_serial__isnull=False).values_list('codigo_serial', flat=True)
             serials_vibracion = diagnosticos.filter(servicio='vibracion', codigo_serial__isnull=False).values_list('codigo_serial', flat=True)
 
-            # 3. Filtramos las tablas usando los seriales obtenidos
+            # Cruzamos los seriales
             calibraciones = calibraciones.filter(codigo_serial__in=serials_calibracion)
             ordenes = ordenes.filter(codigo_serial__in=serials_vibracion)
 
@@ -146,15 +138,20 @@ def dashboard_general(request):
         })
 
         # ==========================================
-        # KPI 2: CALIBRACIONES EFECTIVAS
+        # KPI 2: CALIBRACIONES EFECTIVAS (Optimizado con Count)
         # ==========================================
         total_calibraciones = calibraciones.count()
         if total_calibraciones > 0:
-            suma_calib = sum(1 for reg in calibraciones if reg.tiene_precision) + \
-                         sum(1 for reg in calibraciones if reg.tiene_confiabilidad) + \
-                         sum(1 for reg in calibraciones if reg.cumple_estandares)
+            # Calculamos el total de "True" en los 3 campos en una sola consulta a la BD
+            conteos = calibraciones.aggregate(
+                precision=Count('id', filter=Q(tiene_precision=True)),
+                confiabilidad=Count('id', filter=Q(tiene_confiabilidad=True)),
+                estandares=Count('id', filter=Q(cumple_estandares=True)),
+                efectivas=Count('id', filter=Q(es_efectiva=True))
+            )
+            suma_calib = conteos['precision'] + conteos['confiabilidad'] + conteos['estandares']
             pct_calibraciones = round((suma_calib / (total_calibraciones * 3) * 100), 1)
-            calibraciones_ok = calibraciones.filter(es_efectiva=True).count()
+            calibraciones_ok = conteos['efectivas']
         else:
             pct_calibraciones = 0
             calibraciones_ok = 0
@@ -167,15 +164,19 @@ def dashboard_general(request):
         })
 
         # ==========================================
-        # KPI 3: ÓRDENES DE VIBRACIÓN
+        # KPI 3: ÓRDENES DE VIBRACIÓN (Optimizado con Count)
         # ==========================================
         total_ordenes = ordenes.count()
         if total_ordenes > 0:
-            suma_orden = sum(1 for reg in ordenes if reg.diagnostico_completo) + \
-                         sum(1 for reg in ordenes if reg.cumple_estandares) + \
-                         sum(1 for reg in ordenes if reg.registro_estructurado)
+            conteos_ord = ordenes.aggregate(
+                completo=Count('id', filter=Q(diagnostico_completo=True)),
+                estandares=Count('id', filter=Q(cumple_estandares=True)),
+                estructurado=Count('id', filter=Q(registro_estructurado=True)),
+                efectivas=Count('id', filter=Q(es_efectiva=True))
+            )
+            suma_orden = conteos_ord['completo'] + conteos_ord['estandares'] + conteos_ord['estructurado']
             pct_ordenes = round((suma_orden / (total_ordenes * 3) * 100), 1)
-            ordenes_ok = ordenes.filter(es_efectiva=True).count()
+            ordenes_ok = conteos_ord['efectivas']
         else:
             pct_ordenes = 0
             ordenes_ok = 0
@@ -219,50 +220,40 @@ def dashboard_general(request):
 
     return render(request, 'bi/dashboard_general.html', context)
 
-
+# (El resto de funciones: dashboard_calibraciones, dashboard_ordenes, kanban_ordenes y generar_alertas se quedan igual)
 @login_required
 def dashboard_calibraciones(request):
+    # ... (sin cambios)
     total = RegistroCalibracion.objects.count()
     efectivas = RegistroCalibracion.objects.filter(es_efectiva=True).count()
     porcentaje = (efectivas / total * 100) if total else 0
     context = {
-        'porcentaje': porcentaje,
-        'total': total,
-        'efectivas': efectivas,
-        'top_tecnicos': [],
-        'alertas': {'pendientes_verificacion': 0, 'criticas': 0},
+        'porcentaje': porcentaje, 'total': total, 'efectivas': efectivas,
+        'top_tecnicos': [], 'alertas': {'pendientes_verificacion': 0, 'criticas': 0},
     }
     return render(request, 'bi/dashboard_calibraciones.html', context)
 
-
 @login_required
 def dashboard_ordenes(request):
+    # ... (sin cambios)
     total = OrdenVibracion.objects.count()
     completadas_ok = OrdenVibracion.objects.filter(diagnostico_completo=True).count()
     porcentaje = (completadas_ok / total * 100) if total else 0
     context = {
-        'porcentaje': porcentaje,
-        'total': total,
-        'efectivas': completadas_ok,
-        'distribucion_estados': [],
-        'distribucion_prioridad': [],
-        'alertas': {'sin_asignar': 0, 'retrasadas': 0},
+        'porcentaje': porcentaje, 'total': total, 'efectivas': completadas_ok,
+        'distribucion_estados': [], 'distribucion_prioridad': [], 'alertas': {'sin_asignar': 0, 'retrasadas': 0},
     }
     return render(request, 'bi/dashboard_ordenes.html', context)
 
-
 @login_required
 def kanban_ordenes(request):
+    # ... (sin cambios)
     pendientes = OrdenVibracion.objects.filter(es_efectiva=False)
     completadas = OrdenVibracion.objects.filter(es_efectiva=True).order_by('-id')[:20]
     context = {
-        'pendientes': pendientes,
-        'asignadas': [],
-        'en_diagnostico': [],
-        'completadas': completadas,
+        'pendientes': pendientes, 'asignadas': [], 'en_diagnostico': [], 'completadas': completadas,
     }
     return render(request, 'bi/kanban_ordenes.html', context)
-
 
 def generar_alertas(request):
     return render(request, 'bi/dashboard_general.html')
