@@ -140,6 +140,7 @@ class RegistroCalibracion(models.Model):
     tiene_precision = models.BooleanField(default=False, verbose_name="¿Tiene precisión?")
     tiene_confiabilidad = models.BooleanField(default=False, verbose_name="¿Tiene confiabilidad?")
     cumple_estandares = models.BooleanField(default=False, verbose_name="¿Cumple estándares?")
+    fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
     es_efectiva = models.BooleanField(default=False, editable=False)
 
     def save(self, *args, **kwargs):
@@ -200,7 +201,7 @@ class OrdenVibracion(models.Model):
     diagnostico_completo = models.BooleanField(default=False, verbose_name="¿El diagnóstico está completo?")
     cumple_estandares = models.BooleanField(default=False, verbose_name="¿Cumple con los estándares establecidos?")
     registro_estructurado = models.BooleanField(default=False, verbose_name="¿El técnico realizó un registro estructurado del servicio?")
-    
+    fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
     es_efectiva = models.BooleanField(default=False, editable=False, verbose_name="¿Orden Efectiva?")
 
     def save(self, *args, **kwargs):
