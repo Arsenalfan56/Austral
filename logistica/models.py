@@ -304,7 +304,9 @@ class RegistroInforme(models.Model):
         ('vibracion', 'Orden de Vibración'),
     ]
 
-    titulo = models.CharField(max_length=200, verbose_name="Título del informe")
+    # CAMBIO: editable=False hace que no se muestre en el formulario, se llena solo en el save()
+    titulo = models.CharField(max_length=200, verbose_name="Título del informe", editable=False, blank=True)
+    
     equipo = models.CharField(max_length=150, verbose_name="Equipo", blank=True)
     
     codigo_serial = models.CharField(
@@ -331,9 +333,17 @@ class RegistroInforme(models.Model):
     tiempo_generacion_horas = models.FloatField(default=0, editable=False, verbose_name="Tiempo de generación (h)")
 
     def save(self, *args, **kwargs):
+        # Generación automática del Título
+        if self.servicio and self.equipo and self.cliente:
+            nombre_servicio = self.get_servicio_display()
+            nombre_cliente = self.get_cliente_display()
+            self.titulo = f"Informe de {nombre_servicio} a {self.equipo} de {nombre_cliente}"
+
+        # Lógica del tiempo de generación
         if self.hora_fin:
             diferencia = self.hora_fin - self.hora_inicio
             self.tiempo_generacion_horas = round(diferencia.total_seconds() / 3600, 2)
+            
         super().save(*args, **kwargs)
 
     def __str__(self):
