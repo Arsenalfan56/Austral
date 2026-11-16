@@ -108,24 +108,29 @@ def dashboard_general(request):
 
         # Filtro por Equipo (Opcional)
         if equipo_filtro:
-            calibraciones = calibraciones.filter(equipo=equipo_filtro)
-            ordenes = ordenes.filter(equipo=equipo_filtro)
+            calibraciones = calibraciones.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
+            ordenes = ordenes.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
             diagnosticos = diagnosticos.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
-            informes = informes.filter(equipo=equipo_filtro)
+            informes = informes.filter(Q(equipo__iexact=equipo_filtro) | Q(equipo__icontains=equipo_filtro))
 
-        # Filtro por Fecha de Inicio (Opcional)
-        if fecha_inicio_filtro:
-            calibraciones = calibraciones.filter(fecha_registro__date__gte=fecha_inicio_filtro)
-            ordenes = ordenes.filter(fecha_registro__date__gte=fecha_inicio_filtro)
-            diagnosticos = diagnosticos.filter(fecha_inicio__date__gte=fecha_inicio_filtro)
-            informes = informes.filter(hora_inicio__date__gte=fecha_inicio_filtro)
+        # Filtro por Fechas (CORREGIDO CON SUBCONSULTAS POR SERIAL)
+        if fecha_inicio_filtro or fecha_fin_filtro:
+            # 1. Filtramos los diagnósticos e informes por su propia fecha (Ellos sí tienen el campo)
+            if fecha_inicio_filtro:
+                diagnosticos = diagnosticos.filter(fecha_inicio__date__gte=fecha_inicio_filtro)
+                informes = informes.filter(hora_inicio__date__gte=fecha_inicio_filtro)
+            if fecha_fin_filtro:
+                diagnosticos = diagnosticos.filter(fecha_inicio__date__lte=fecha_fin_filtro)
+                informes = informes.filter(hora_inicio__date__lte=fecha_fin_filtro)
 
-        # Filtro por Fecha de Fin (Opcional)
-        if fecha_fin_filtro:
-            calibraciones = calibraciones.filter(fecha_registro__date__lte=fecha_fin_filtro)
-            ordenes = ordenes.filter(fecha_registro__date__lte=fecha_fin_filtro)
-            diagnosticos = diagnosticos.filter(fecha_inicio__date__lte=fecha_fin_filtro)
-            informes = informes.filter(hora_inicio__date__lte=fecha_fin_filtro)
+            # 2. Para Calibraciones y Órdenes, extraemos los seriales de los diagnósticos en ese rango de fechas
+            # Filtramos por servicio='calibracion' o 'vibracion' y evitamos seriales nulos
+            serials_calibracion = diagnosticos.filter(servicio='calibracion', codigo_serial__isnull=False).values_list('codigo_serial', flat=True)
+            serials_vibracion = diagnosticos.filter(servicio='vibracion', codigo_serial__isnull=False).values_list('codigo_serial', flat=True)
+
+            # 3. Filtramos las tablas usando los seriales obtenidos
+            calibraciones = calibraciones.filter(codigo_serial__in=serials_calibracion)
+            ordenes = ordenes.filter(codigo_serial__in=serials_vibracion)
 
         # ==========================================
         # KPI 1: TIEMPO DE INFORME
