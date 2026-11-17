@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.db.models import Avg, Q, Count
 from django.contrib.auth.decorators import login_required
 from django.utils.dateparse import parse_date
+from django.contrib import messages  # <-- IMPORTACIÓN AÑADIDA
 from logistica.models import (
     RegistroCalibracion,
     OrdenVibracion,
@@ -28,6 +29,15 @@ def dashboard_general(request):
     fecha_fin_filtro = request.GET.get('fecha_fin', '')
     f_inicio = parse_date(fecha_inicio_filtro) if fecha_inicio_filtro else None
     f_fin = parse_date(fecha_fin_filtro) if fecha_fin_filtro else None
+
+    # ==========================================
+    # 🛡️ VALIDACIÓN DE FECHAS EN EL BACKEND (AÑADIDO)
+    # ==========================================
+    if f_inicio and f_fin and f_fin < f_inicio:
+        messages.error(request, "Error: La fecha 'Hasta' no puede ser menor que la fecha 'Desde'.")
+        aplicar = '0' # Forzamos a que no calcule los KPIs con datos erróneos
+        f_fin = None  # Borramos la fecha fin para que no rompa la consulta
+        fecha_fin_filtro = ''
 
     # ==========================================
     # OBTENER CLIENTES Y EQUIPOS (Optimizado)
@@ -220,10 +230,9 @@ def dashboard_general(request):
 
     return render(request, 'bi/dashboard_general.html', context)
 
-# (El resto de funciones: dashboard_calibraciones, dashboard_ordenes, kanban_ordenes y generar_alertas se quedan igual)
+
 @login_required
 def dashboard_calibraciones(request):
-    # ... (sin cambios)
     total = RegistroCalibracion.objects.count()
     efectivas = RegistroCalibracion.objects.filter(es_efectiva=True).count()
     porcentaje = (efectivas / total * 100) if total else 0
@@ -233,9 +242,9 @@ def dashboard_calibraciones(request):
     }
     return render(request, 'bi/dashboard_calibraciones.html', context)
 
+
 @login_required
 def dashboard_ordenes(request):
-    # ... (sin cambios)
     total = OrdenVibracion.objects.count()
     completadas_ok = OrdenVibracion.objects.filter(diagnostico_completo=True).count()
     porcentaje = (completadas_ok / total * 100) if total else 0
@@ -245,15 +254,16 @@ def dashboard_ordenes(request):
     }
     return render(request, 'bi/dashboard_ordenes.html', context)
 
+
 @login_required
 def kanban_ordenes(request):
-    # ... (sin cambios)
     pendientes = OrdenVibracion.objects.filter(es_efectiva=False)
     completadas = OrdenVibracion.objects.filter(es_efectiva=True).order_by('-id')[:20]
     context = {
         'pendientes': pendientes, 'asignadas': [], 'en_diagnostico': [], 'completadas': completadas,
     }
     return render(request, 'bi/kanban_ordenes.html', context)
+
 
 def generar_alertas(request):
     return render(request, 'bi/dashboard_general.html')
