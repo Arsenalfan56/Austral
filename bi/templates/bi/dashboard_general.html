@@ -40,6 +40,16 @@
 </style>
 
 <div class="bi-container">
+    
+    <!-- 🛡️ ALERTA DE ERROR (Validación del backend) -->
+    {% if messages %}
+        {% for message in messages %}
+        <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">⚠️</span> {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
     <div class="bi-header">
         <h1>📊 Dashboard BI</h1>
         <p>Indicadores de rendimiento filtrados por Cliente, Equipo y Fechas</p>
@@ -155,4 +165,34 @@
     </div>
     {% endif %}
 </div>
+
+<!-- 🛡️ VALIDACIÓN DE FECHAS EN EL FRONTEND (Navegador) -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const fechaInicio = document.getElementById("fecha_inicio");
+        const fechaFin = document.getElementById("fecha_fin");
+
+        function actualizarLimite() {
+            if (fechaInicio.value) {
+                // El calendario de "Hasta" no permitirá elegir fechas anteriores a "Desde"
+                fechaFin.min = fechaInicio.value;
+                
+                // Si la fecha fin ya estaba seleccionada y es menor, la borramos
+                if (fechaFin.value && fechaFin.value < fechaInicio.value) {
+                    fechaFin.value = ""; 
+                }
+            } else {
+                // Si se limpia la fecha inicio, quitamos el límite
+                fechaFin.removeAttribute("min");
+            }
+        }
+
+        // Ejecutamos cuando el usuario cambie la fecha de inicio
+        fechaInicio.addEventListener("change", actualizarLimite);
+        
+        // Ejecutamos al cargar la página por si ya venían fechas en la URL
+        actualizarLimite();
+    });
+</script>
+
 {% endblock %}
