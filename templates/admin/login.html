@@ -57,7 +57,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* 🔧 Subtítulo más visible */
         .login-header p {
             color: #ffffff !important;
             font-size: 15px !important;
@@ -256,14 +255,8 @@
             </div>
             {% endif %}
 
-            {% if user.is_authenticated %}
-            <div class="error-box">
-                Ya has iniciado sesión como {{ user.get_username }}.
-                <a href="{% url 'admin:logout' %}">Cerrar sesión</a>
-            </div>
-            {% endif %}
-
-            <form action="{{ app_path }}" method="post" id="login-form">
+            <!-- CORREGIDO: action apunta a 'login' -->
+            <form action="{% url 'login' %}" method="post" id="login-form">
                 {% csrf_token %}
 
                 <div class="form-group">
@@ -279,15 +272,14 @@
                     <input type="hidden" name="next" value="{{ next }}">
                 </div>
 
-                {% url 'admin_password_reset' as password_reset_url %}
-                {% if password_reset_url %}
+                <!-- CORREGIDO: Apunta a 'password_reset' en lugar de 'admin_password_reset' -->
                 <div class="forgot-password">
-                    <a href="{{ password_reset_url }}">¿Olvidaste tu contraseña?</a>
+                    <a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a>
                 </div>
-                {% endif %}
 
                 <div class="buttons-row">
                     <button type="submit" class="btn-login">Iniciar sesión</button>
+                    <!-- CORREGIDO: Apunta a 'logistica:registro' asumiendo que tienes esa ruta -->
                     <a href="{% url 'logistica:registro' %}" class="btn-register">➕ Nueva cuenta</a>
                 </div>
             </form>
@@ -296,3 +288,7 @@
         <!-- Pie de página -->
         <div class="login-footer">
             <strong>Austral V&T ERP</strong> &copy; Sistema de gestión
+        </div>
+    </div>
+</body>
+</html>
