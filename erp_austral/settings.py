@@ -128,8 +128,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ===== CONFIGURACIÓN DE LOGIN =====
-LOGIN_URL = '/admin/login/'
-LOGIN_REDIRECT_URL = '/'
+# ===== CONFIGURACIÓN DE LOGIN =====
+LOGIN_URL = 'login'
+# A dónde te manda después de poner tu usuario y contraseña:
+LOGIN_REDIRECT_URL = '/admin/' 
+# A dónde te manda cuando presionas "Cerrar Sesión":
+LOGOUT_REDIRECT_URL = 'login'
 
 
 # ===== CONFIGURACIÓN DE SESIÓN =====
